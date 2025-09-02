@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gradient-to-br from-yellow-50 to-green-100 dark:from-gray-900 dark:to-gray-800">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Recipe Recommender 🍲</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/alpinejs" defer></script>
+</head>
+<body x-data="{ tab: 0, dark: false }" :class="{ 'dark': dark }" class="min-h-screen transition-all">
+  <header class="flex items-center justify-between p-4 bg-white dark:bg-gray-900 shadow-md">
+    <h1 class="text-2xl font-bold text-green-700 dark:text-yellow-300 flex items-center gap-2">
+      <span>🍲</span>
+      AI Recipe Recommender
+    </h1>
+    <button @click="dark=!dark" class="ml-auto px-3 py-1 rounded focus:outline-none bg-green-100 dark:bg-gray-800 hover:bg-green-200 dark:hover:bg-gray-700 text-green-800 dark:text-yellow-100">
+      <span x-show="!dark">🌙</span>
+      <span x-show="dark">🌞</span>
+    </button>
+  </header>
+
+  <nav class="flex justify-center gap-2 mt-4">
+    <button @click="tab=0" :class="{'bg-green-200 dark:bg-gray-700': tab===0}" class="px-4 py-2 rounded-l font-semibold">Pick Ingredients</button>
+    <button @click="tab=1" :class="{'bg-green-200 dark:bg-gray-700': tab===1}" class="px-4 py-2 font-semibold">Get Recipes</button>
+    <button @click="tab=2" :class="{'bg-green-200 dark:bg-gray-700': tab===2}" class="px-4 py-2 font-semibold">Save & Share</button>
+  </nav>
+
+  <main class="max-w-xl mx-auto mt-8 p-4 bg-white dark:bg-gray-900 rounded shadow">
+    <!-- Pick Ingredients Tab -->
+    <section x-show="tab===0" class="animate-fadeIn">
+      <h2 class="text-xl font-bold mb-2 text-green-700 dark:text-yellow-300">What do you have at home?</h2>
+      <form id="ingredientsForm">
+        <div class="grid grid-cols-2 gap-2 mb-4">
+          <input type="text" name="ingredient" placeholder="e.g. maize flour" class="p-2 rounded border dark:bg-gray-800 dark:text-white" required>
+        </div>
+        <button type="submit" class="mt-2 px-4 py-2 bg-green-400 hover:bg-green-600 text-white rounded shadow transition">Add Ingredient</button>
+      </form>
+      <div id="currentIngredients" class="mt-4 flex gap-2 flex-wrap"></div>
+    </section>
+
+    <!-- Get Recipes Tab -->
+    <section x-show="tab===1" class="animate-fadeIn">
+      <h2 class="text-xl font-bold mb-2 text-green-700 dark:text-yellow-300">Suggested Recipes</h2>
+      <div id="recipesList" class="space-y-4"></div>
+      <button id="getRecipesBtn" class="mt-4 px-4 py-2 bg-green-400 hover:bg-green-600 text-white rounded shadow">Get Recipes</button>
+      <div id="premiumUnlock" class="mt-6"></div>
+    </section>
+
+    <!-- Save & Share Tab -->
+    <section x-show="tab===2" class="animate-fadeIn">
+      <h2 class="text-xl font-bold mb-2 text-green-700 dark:text-yellow-300">Save & Share Recipes</h2>
+      <div id="savedRecipes" class="space-y-2"></div>
+      <button id="feedbackBtn" class="mt-4 px-4 py-2 bg-yellow-400 hover:bg-yellow-600 text-white rounded shadow">Feedback</button>
+    </section>
+  </main>
+
+  <footer class="mt-8 p-4 text-center text-xs text-gray-700 dark:text-gray-400">
+    Made with ❤️ by Philip Musee David. SDG #2 Zero Hunger. Kenya 🇰🇪
+  </footer>
+
+  <script>
+// Ingredient management
+let ingredients = [];
+const ingredientsForm = document.getElementById('ingredientsForm');
+const currentIngredientsDiv = document.getElementById('currentIngredients');
+ingredientsForm && ingredientsForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const val = ingredientsForm.ingredient.value.trim();
+  if(val && !ingredients.includes(val)) {
+    ingredients.push(val);
+    renderIngredients();
+    ingredientsForm.reset();
+  }
+});
+function renderIngredients() {
+  currentIngredientsDiv.innerHTML = ingredients.map((ing, i) =>
+    `<span class="px-2 py-1 bg-green-100 rounded-full shadow text-green-700 dark:bg-gray-700 dark:text-yellow-100">${ing} <button onclick="removeIngredient(${i})" class="text-red-500 ml-1">x</button></span>`
+  ).join('');
+}
+window.removeIngredient = i => {
+  ingredients.splice(i,1); renderIngredients();
+}
+
+// Get Recipes
+const recipesList = document.getElementById('recipesList');
+const getRecipesBtn = document.getElementById('getRecipesBtn');
+getRecipesBtn && getRecipesBtn.addEventListener('click', async () => {
+  recipesList.innerHTML = '<div class="text-center">Loading recipes...</div>';
+  const res = await fetch('/api/recipes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': localStorage.getItem('token') || '' },
+    body: JSON.stringify({ ingredients })
+  });
+  const data = await res.json();
+  if(data.recipes) {
+    if(Array.isArray(data.recipes)){
+      recipesList.innerHTML = data.recipes.map(r =>
+        `<div class="bg-green-50 dark:bg-gray-800 rounded shadow-lg p-4 transition hover:scale-105 duration-300">
+          <h3 class="font-bold mb-2 text-green-700 dark:text-yellow-300">${r.title}</h3>
+          <div><b>Ingredients:</b> ${r.ingredients}</div>
+          <div><b>Steps:</b> ${r.steps}</div>
+        </div>`
+      ).join('');
+    } else {
+      recipesList.innerHTML = `<pre class="bg-green-50 dark:bg-gray-800 p-4 rounded">${data.recipes}</pre>`;
+    }
+  }
+});
+
+// Feedback Button
+document.getElementById('feedbackBtn')?.addEventListener('click', () => {
+  alert('Thank you for your feedback! We continually improve.');
+});
+  </script>
+</body>
+</html>
