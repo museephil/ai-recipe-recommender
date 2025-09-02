@@ -59,58 +59,68 @@
   </footer>
 
   <script>
-// Ingredient management
-let ingredients = [];
-const ingredientsForm = document.getElementById('ingredientsForm');
-const currentIngredientsDiv = document.getElementById('currentIngredients');
-ingredientsForm && ingredientsForm.addEventListener('submit', e => {
-  e.preventDefault();
-  const val = ingredientsForm.ingredient.value.trim();
-  if(val && !ingredients.includes(val)) {
-    ingredients.push(val);
-    renderIngredients();
-    ingredientsForm.reset();
-  }
-});
-function renderIngredients() {
-  currentIngredientsDiv.innerHTML = ingredients.map((ing, i) =>
-    `<span class="px-2 py-1 bg-green-100 rounded-full shadow text-green-700 dark:bg-gray-700 dark:text-yellow-100">${ing} <button onclick="removeIngredient(${i})" class="text-red-500 ml-1">x</button></span>`
-  ).join('');
-}
-window.removeIngredient = i => {
-  ingredients.splice(i,1); renderIngredients();
-}
+  // Ingredient management
+  let ingredients = [];
+  const ingredientsForm = document.getElementById('ingredientsForm');
+  const currentIngredientsDiv = document.getElementById('currentIngredients');
 
-// Get Recipes
-const recipesList = document.getElementById('recipesList');
-const getRecipesBtn = document.getElementById('getRecipesBtn');
-getRecipesBtn && getRecipesBtn.addEventListener('click', async () => {
-  recipesList.innerHTML = '<div class="text-center">Loading recipes...</div>';
-  const res = await fetch('/api/recipes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': localStorage.getItem('token') || '' },
-    body: JSON.stringify({ ingredients })
-  });
-  const data = await res.json();
-  if(data.recipes) {
-    if(Array.isArray(data.recipes)){
-      recipesList.innerHTML = data.recipes.map(r =>
-        `<div class="bg-green-50 dark:bg-gray-800 rounded shadow-lg p-4 transition hover:scale-105 duration-300">
-          <h3 class="font-bold mb-2 text-green-700 dark:text-yellow-300">${r.title}</h3>
-          <div><b>Ingredients:</b> ${r.ingredients}</div>
-          <div><b>Steps:</b> ${r.steps}</div>
-        </div>`
-      ).join('');
-    } else {
-      recipesList.innerHTML = `<pre class="bg-green-50 dark:bg-gray-800 p-4 rounded">${data.recipes}</pre>`;
+  ingredientsForm && ingredientsForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const val = ingredientsForm.ingredient.value.trim();
+    if(val && !ingredients.includes(val)) {
+      ingredients.push(val);
+      renderIngredients();
+      ingredientsForm.reset();
     }
-  }
-});
+  });
 
-// Feedback Button
-document.getElementById('feedbackBtn')?.addEventListener('click', () => {
-  alert('Thank you for your feedback! We continually improve.');
-});
+  function renderIngredients() {
+    currentIngredientsDiv.innerHTML = ingredients.map((ing, i) =>
+      `<span class="px-2 py-1 bg-green-100 rounded-full shadow text-green-700 dark:bg-gray-700 dark:text-yellow-100">
+        ${ing} <button onclick="removeIngredient(${i})" class="text-red-500 ml-1">x</button>
+      </span>`
+    ).join('');
+  }
+
+  window.removeIngredient = i => {
+    ingredients.splice(i,1); renderIngredients();
+  }
+
+  // Get Recipes
+  const recipesList = document.getElementById('recipesList');
+  const getRecipesBtn = document.getElementById('getRecipesBtn');
+
+  getRecipesBtn && getRecipesBtn.addEventListener('click', async () => {
+    recipesList.innerHTML = '<div class="text-center">Loading recipes...</div>';
+    try {
+      const res = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': localStorage.getItem('token') || '' },
+        body: JSON.stringify({ ingredients })
+      });
+      const data = await res.json();
+      if(data.recipes) {
+        if(Array.isArray(data.recipes)){
+          recipesList.innerHTML = data.recipes.map(r =>
+            `<div class="bg-green-50 dark:bg-gray-800 rounded shadow-lg p-4 transition hover:scale-105 duration-300">
+              <h3 class="font-bold mb-2 text-green-700 dark:text-yellow-300">${r.title}</h3>
+              <div><b>Ingredients:</b> ${r.ingredients}</div>
+              <div><b>Steps:</b> ${r.steps}</div>
+            </div>`
+          ).join('');
+        } else {
+          recipesList.innerHTML = `<pre class="bg-green-50 dark:bg-gray-800 p-4 rounded">${data.recipes}</pre>`;
+        }
+      }
+    } catch (err) {
+      recipesList.innerHTML = '<div class="text-red-500">Error loading recipes.</div>';
+    }
+  });
+
+  // Feedback Button
+  document.getElementById('feedbackBtn')?.addEventListener('click', () => {
+    alert('Thank you for your feedback! We continually improve.');
+  });
   </script>
 </body>
 </html>
